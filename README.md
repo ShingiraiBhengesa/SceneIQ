@@ -1,4 +1,4 @@
-# VisionAssist Backend (Sprint 1)
+# SceneIQ Backend (Sprint 1)
 
 FastAPI backend for authentication, user profile CRUD, and foundational database schema.
 
