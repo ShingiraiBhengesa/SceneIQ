@@ -59,7 +59,7 @@ This is a **Sprint 1 prototype** built with **mock data only** - no backend inte
 ## Project Structure
 
 ```
-frontend/
+
 ├── public/
 │   └── index.html
 ├── src/
