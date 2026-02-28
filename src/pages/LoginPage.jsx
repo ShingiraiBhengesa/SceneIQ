@@ -68,6 +68,20 @@ const LoginPage = () => {
     }
   };
 
+  const handleDemoLogin = async () => {
+    setLoading(true);
+    setServerError('');
+    try {
+      const response = await mockLogin('demo@sceneiq.com', 'demo123');
+      login(response.user, response.token);
+      navigate('/dashboard');
+    } catch (error) {
+      setServerError(error.message || 'Demo login failed.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
@@ -78,6 +92,21 @@ const LoginPage = () => {
           <p className="mt-2 text-center text-sm text-gray-600">
             Welcome back to SceneIQ
           </p>
+        </div>
+
+        {/* Demo Login Banner */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <p className="text-sm text-blue-800 mb-3 text-center">
+            <strong>Quick Demo Access:</strong> Enter any email and password, or click the button below
+          </p>
+          <button
+            type="button"
+            onClick={handleDemoLogin}
+            disabled={loading}
+            className="w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+          >
+            🚀 Try Demo Login
+          </button>
         </div>
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit} noValidate>
