@@ -6,6 +6,8 @@ from sqlalchemy import text
 from app.config import settings
 from app.database import SessionLocal
 from app.routers import auth, users
+from app.routers import images
+from app.services.ml_service import ml_service
 
 
 app = FastAPI(
@@ -22,8 +24,15 @@ app.add_middleware(
     allow_headers=["Authorization", "Content-Type"],
 )
 
+
+@app.on_event("startup")
+async def startup_event():
+    ml_service.load_models()
+
+
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(users.router, prefix="/api/users", tags=["Users"])
+app.include_router(images.router, prefix="/api/images", tags=["Image Analysis"])
 
 
 @app.get("/api/health")
