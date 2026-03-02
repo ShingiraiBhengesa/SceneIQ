@@ -29,6 +29,13 @@ const UploadPage = () => {
     'What is the lighting like?',
   ];
 
+  // Attach stream to video element once it mounts (showWebcam flips to true)
+  useEffect(() => {
+    if (showWebcam && videoRef.current && webcamStream) {
+      videoRef.current.srcObject = webcamStream;
+    }
+  }, [showWebcam, webcamStream]);
+
   // Cleanup speech on unmount
   useEffect(() => {
     return () => {
@@ -95,12 +102,8 @@ const UploadPage = () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       setWebcamStream(stream);
-      setShowWebcam(true);
+      setShowWebcam(true); // video element mounts on next render; useEffect attaches srcObject
       setError(null);
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
     } catch {
       setError('Unable to access webcam. Please check permissions.');
     }
