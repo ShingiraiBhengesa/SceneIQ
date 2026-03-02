@@ -1,5 +1,38 @@
-// Mock API service - simulates backend calls with delays
-// In Sprint 2, replace these with real fetch() calls to FastAPI backend
+// ─── Real API (FastAPI backend) ───────────────────────────────────────────────
+
+const BASE_URL = 'http://localhost:8000';
+
+const apiFetch = async (path, options = {}) => {
+  const token = localStorage.getItem('token');
+  const headers = { 'Content-Type': 'application/json', ...options.headers };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(`${BASE_URL}${path}`, { ...options, headers });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Request failed');
+  }
+  return res.json();
+};
+
+export const apiLogin = (email, password) =>
+  apiFetch('/api/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
+
+export const apiRegister = (name, email, password) =>
+  apiFetch('/api/auth/register', { method: 'POST', body: JSON.stringify({ name, email, password }) });
+
+export const apiLogout = () =>
+  apiFetch('/api/auth/logout', { method: 'POST' });
+
+export const apiGetProfile = () =>
+  apiFetch('/api/users/profile');
+
+export const apiUpdateProfile = (data) =>
+  apiFetch('/api/users/profile', { method: 'PUT', body: JSON.stringify(data) });
+
+// ─── Mock API (features not yet backed by the server) ────────────────────────
+// TODO Sprint 3: replace mockGetHistory, mockAnalyzeImage, mockAskQuestion
+//               with real endpoints once the AI/analysis backend is built.
 
 export const mockLogin = (email, password) => {
   return new Promise((resolve, reject) => {
