@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from uuid import UUID
@@ -8,18 +9,16 @@ from app.middleware.auth_middleware import get_current_user_id
 from app.models.user import User
 from app.schemas.user import TokenResponse, UserLogin, UserRegister
 from app.services.auth_service import create_access_token, hash_password, verify_password
+from app.services.token_blacklist import blacklist_token
 
 
 router = APIRouter()
+security = HTTPBearer(auto_error=False)
 
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
 async def register(payload: UserRegister, db: Session = Depends(get_db)) -> TokenResponse:
-    if len(payload.password) < 8:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Password must be at least 8 characters long",
-        )
+    # Password length is now validated by Pydantic schema (UserRegister)
 
     existing_user = db.execute(select(User).where(User.email == payload.email)).scalar_one_or_none()
     if existing_user is not None:
@@ -55,5 +54,16 @@ async def login(payload: UserLogin, db: Session = Depends(get_db)) -> TokenRespo
 
 
 @router.post("/logout")
-async def logout(_: UUID = Depends(get_current_user_id)) -> dict[str, str]:
+async def logout(
+    _: UUID = Depends(get_current_user_id),
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> dict[str, str]:
+    # Blacklist the current token so it can't be reused
+    if credentials and credentials.credentials:
+        try:
+            blacklist_token(credentials.credentials)
+        except Exception:
+            # If Redis is unavailable, logout still succeeds (graceful degradation)
+            pass
+
     return {"message": "Logged out successfully"}

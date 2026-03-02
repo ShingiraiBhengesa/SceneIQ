@@ -19,6 +19,10 @@ env/
 .env
 .env.*
 !.env.example
+.envrc
+*.pem
+*.key
+*.crt
 
 # Tooling
 .idea/
@@ -26,3 +30,23 @@ env/
 
 # Logs
 *.log
+
+# Coverage / test artifacts
+.coverage
+htmlcov/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Node.js
+node_modules/
+
+# Local debug scripts
+debug_runtime_check.py
