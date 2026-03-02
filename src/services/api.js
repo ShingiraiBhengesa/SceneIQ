@@ -1,6 +1,6 @@
 // ─── Real API (FastAPI backend) ───────────────────────────────────────────────
 
-const BASE_URL = 'http://localhost:8000';
+const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 const apiFetch = async (path, options = {}) => {
   const token = localStorage.getItem('token');
@@ -30,9 +30,29 @@ export const apiGetProfile = () =>
 export const apiUpdateProfile = (data) =>
   apiFetch('/api/users/profile', { method: 'PUT', body: JSON.stringify(data) });
 
-// ─── Mock API (features not yet backed by the server) ────────────────────────
-// TODO Sprint 3: replace mockGetHistory, mockAnalyzeImage, mockAskQuestion
-//               with real endpoints once the AI/analysis backend is built.
+export const apiAnalyzeImage = async (imageFile) => {
+  const token = localStorage.getItem('token');
+  const formData = new FormData();
+  formData.append('file', imageFile);
+  const res = await fetch(`${BASE_URL}/api/images/analyze`, {
+    method: 'POST',
+    headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+    body: formData,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Analysis failed');
+  }
+  return res.json(); // { caption, objects: [{label, confidence, bbox: [x1,y1,x2,y2]}], image_id }
+};
+
+export const apiAskQuestion = (imageId, question) =>
+  apiFetch('/api/images/ask', { method: 'POST', body: JSON.stringify({ image_id: imageId, question }) });
+
+export const apiGetHistory = () =>
+  apiFetch('/api/images/history');
+
+// ─── Mock API (legacy – kept for reference, not used by the UI) ───────────────
 
 export const mockLogin = (email, password) => {
   return new Promise((resolve, reject) => {

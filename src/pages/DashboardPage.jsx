@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { mockGetHistory } from '../services/api';
+import { apiGetHistory } from '../services/api';
 
 const StatCard = ({ label, value, icon, accent }) => (
   <div className={`bg-dark-800 border border-dark-700 rounded-2xl p-6 hover:border-${accent}-400/30 transition-colors`}>
@@ -21,15 +21,24 @@ const DashboardPage = () => {
   const { user } = useAuth();
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [historyError, setHistoryError] = useState(null);
   const [speaking, setSpeaking] = useState(null);
 
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const data = await mockGetHistory();
-        setHistory(data);
-      } catch (error) {
-        console.error('Error fetching history:', error);
+        const data = await apiGetHistory();
+        // Normalise backend fields to what the UI expects
+        const normalised = data.map((item) => ({
+          id: item.id,
+          imageName: item.image_filename,
+          date: item.created_at,
+          description: item.caption,
+          objectsDetected: item.objects_detected ?? 0,
+        }));
+        setHistory(normalised);
+      } catch (err) {
+        setHistoryError(err.message || 'Failed to load history.');
       } finally {
         setLoading(false);
       }
@@ -63,9 +72,9 @@ const DashboardPage = () => {
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-10" role="region" aria-label="Statistics overview">
-          <StatCard label="Images Analyzed" value="24" icon="📸" accent="cyan" />
-          <StatCard label="Objects Detected" value="156" icon="🔍" accent="purple" />
-          <StatCard label="Questions Asked" value="38" icon="💬" accent="cyan" />
+          <StatCard label="Images Analyzed" value={loading ? '—' : history.length} icon="📸" accent="cyan" />
+          <StatCard label="Objects Detected" value={loading ? '—' : history.reduce((sum, i) => sum + i.objectsDetected, 0)} icon="🔍" accent="purple" />
+          <StatCard label="Analyses This Month" value={loading ? '—' : history.filter(i => new Date(i.date).getMonth() === new Date().getMonth()).length} icon="📅" accent="cyan" />
         </div>
 
         {/* New Analysis CTA */}
@@ -91,6 +100,10 @@ const DashboardPage = () => {
           {loading ? (
             <div className="bg-dark-800 border border-dark-700 rounded-2xl p-10 text-center" role="status">
               <p className="text-gray-500">Loading history…</p>
+            </div>
+          ) : historyError ? (
+            <div className="bg-red-500/10 border border-red-500/30 text-red-400 rounded-2xl p-10 text-center" role="alert">
+              <p>{historyError}</p>
             </div>
           ) : history.length === 0 ? (
             <div className="bg-dark-800 border border-dark-700 rounded-2xl p-10 text-center">
@@ -122,16 +135,11 @@ const DashboardPage = () => {
                       </div>
                       <p className="text-gray-400 text-sm mb-4 leading-relaxed">{item.description}</p>
 
-                      {/* Object tags */}
+                      {/* Object count badge */}
                       <div className="flex flex-wrap gap-2 mb-4">
-                        {item.objects.map((obj, idx) => (
-                          <span
-                            key={idx}
-                            className="px-2.5 py-1 text-xs rounded-full bg-dark-700 text-cyan-400 border border-dark-600"
-                          >
-                            {obj.label} {Math.round(obj.confidence * 100)}%
-                          </span>
-                        ))}
+                        <span className="px-2.5 py-1 text-xs rounded-full bg-dark-700 text-cyan-400 border border-dark-600">
+                          {item.objectsDetected} object{item.objectsDetected !== 1 ? 's' : ''} detected
+                        </span>
                       </div>
 
                       {/* Audio button */}

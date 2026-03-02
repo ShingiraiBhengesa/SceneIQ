@@ -1,14 +1,18 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { mockAnalyzeImage, mockAskQuestion } from '../services/api';
+import { apiAnalyzeImage, apiAskQuestion } from '../services/api';
 
 const UploadPage = () => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [results, setResults] = useState(null);
+  const [imageId, setImageId] = useState(null);
+  const [imgNaturalSize, setImgNaturalSize] = useState({ width: 1, height: 1 });
+  const [error, setError] = useState(null);
   const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState(null);
   const [loadingAnswer, setLoadingAnswer] = useState(false);
+  const [answerError, setAnswerError] = useState(null);
   const [speaking, setSpeaking] = useState(null);
   const [dragActive, setDragActive] = useState(false);
   const [webcamStream, setWebcamStream] = useState(null);
@@ -17,6 +21,13 @@ const UploadPage = () => {
   const fileInputRef = useRef(null);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
+
+  const DEFAULT_SUGGESTED_QUESTIONS = [
+    'Describe the scene',
+    'Is the path clear?',
+    'How many objects are there?',
+    'What is the lighting like?',
+  ];
 
   // Cleanup speech on unmount
   useEffect(() => {
@@ -54,9 +65,12 @@ const UploadPage = () => {
       setPreviewUrl(URL.createObjectURL(file));
       setResults(null);
       setAnswer(null);
+      setImageId(null);
+      setError(null);
+      setAnswerError(null);
       setShowWebcam(false);
     } else {
-      alert('Please select a valid image file (JPEG, PNG, or WebP)');
+      setError('Please select a valid image file (JPEG, PNG, or WebP)');
     }
   };
 
@@ -82,12 +96,13 @@ const UploadPage = () => {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       setWebcamStream(stream);
       setShowWebcam(true);
+      setError(null);
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
       }
-    } catch (error) {
-      alert('Unable to access webcam. Please check permissions.');
+    } catch {
+      setError('Unable to access webcam. Please check permissions.');
     }
   };
 
@@ -118,11 +133,17 @@ const UploadPage = () => {
     if (!selectedFile) return;
 
     setAnalyzing(true);
+    setError(null);
     try {
-      const analysisResults = await mockAnalyzeImage(selectedFile);
-      setResults(analysisResults);
-    } catch (error) {
-      alert('Analysis failed. Please try again.');
+      const data = await apiAnalyzeImage(selectedFile);
+      setImageId(data.image_id);
+      setResults({
+        description: data.caption,
+        objects: data.objects || [],
+        suggestedQuestions: data.suggested_questions || DEFAULT_SUGGESTED_QUESTIONS,
+      });
+    } catch (err) {
+      setError(err.message || 'Analysis failed. Please try again.');
     } finally {
       setAnalyzing(false);
     }
@@ -132,17 +153,18 @@ const UploadPage = () => {
     if (e) e.preventDefault();
 
     const questionText = suggestedQuestion || question;
-    if (!questionText.trim()) return;
+    if (!questionText.trim() || !imageId) return;
 
     setLoadingAnswer(true);
+    setAnswerError(null);
     try {
-      const response = await mockAskQuestion(questionText);
+      const response = await apiAskQuestion(imageId, questionText);
       setAnswer(response.answer);
       if (!suggestedQuestion) {
         setQuestion('');
       }
-    } catch (error) {
-      alert('Failed to get answer. Please try again.');
+    } catch (err) {
+      setAnswerError(err.message || 'Failed to get answer. Please try again.');
     } finally {
       setLoadingAnswer(false);
     }
@@ -170,6 +192,12 @@ const UploadPage = () => {
         <h1 className="text-3xl font-bold text-white mb-8">
           Image Upload & Analysis
         </h1>
+
+        {error && (
+          <div className="mb-6 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl p-4" role="alert">
+            {error}
+          </div>
+        )}
 
         {/* Upload Section */}
         {!selectedFile && !showWebcam && (
@@ -340,31 +368,34 @@ const UploadPage = () => {
               <h2 id="objects-heading" className="text-xl font-semibold text-white mb-4">
                 Objects Detected
               </h2>
-              <div className="relative">
+              <div className="relative inline-block max-w-full">
                 <img
                   src={previewUrl}
                   alt="Analyzed with object detection overlay"
-                  className="max-w-full rounded-2xl"
+                  className="max-w-full rounded-2xl block"
+                  onLoad={(e) => setImgNaturalSize({ width: e.target.naturalWidth, height: e.target.naturalHeight })}
                 />
-                {/* Mock bounding boxes */}
-                {results.objects.map((obj, idx) => (
-                  <div
-                    key={idx}
-                    className="absolute border-2 border-green-500 bg-green-500 bg-opacity-20"
-                    style={{
-                      left: `${obj.x}%`,
-                      top: `${obj.y}%`,
-                      width: `${obj.width}%`,
-                      height: `${obj.height}%`
-                    }}
-                    role="img"
-                    aria-label={`${obj.label} detected with ${Math.round(obj.confidence * 100)}% confidence`}
-                  >
-                    <span className="absolute -top-6 left-0 bg-green-500 text-white px-2 py-1 text-xs rounded">
-                      {obj.label} ({Math.round(obj.confidence * 100)}%)
-                    </span>
-                  </div>
-                ))}
+                {results.objects.map((obj, idx) => {
+                  const bbox = obj.bbox;
+                  if (!bbox || bbox.length < 4) return null;
+                  const left = (bbox[0] / imgNaturalSize.width) * 100;
+                  const top = (bbox[1] / imgNaturalSize.height) * 100;
+                  const width = ((bbox[2] - bbox[0]) / imgNaturalSize.width) * 100;
+                  const height = ((bbox[3] - bbox[1]) / imgNaturalSize.height) * 100;
+                  return (
+                    <div
+                      key={idx}
+                      className="absolute border-2 border-green-500 bg-green-500 bg-opacity-20"
+                      style={{ left: `${left}%`, top: `${top}%`, width: `${width}%`, height: `${height}%` }}
+                      role="img"
+                      aria-label={`${obj.label} detected with ${Math.round(obj.confidence * 100)}% confidence`}
+                    >
+                      <span className="absolute -top-6 left-0 bg-green-500 text-white px-2 py-1 text-xs rounded whitespace-nowrap">
+                        {obj.label} ({Math.round(obj.confidence * 100)}%)
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
                 {results.objects.map((obj, idx) => (
@@ -428,6 +459,12 @@ const UploadPage = () => {
                 </div>
               </form>
 
+              {answerError && (
+                <div className="mb-4 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl p-4" role="alert">
+                  {answerError}
+                </div>
+              )}
+
               {/* Answer */}
               {answer && (
                 <div className="bg-green-500/10 border border-green-500/30 text-green-400 rounded-xl p-4" role="region" aria-live="polite">
@@ -455,6 +492,9 @@ const UploadPage = () => {
                   setPreviewUrl(null);
                   setResults(null);
                   setAnswer(null);
+                  setImageId(null);
+                  setError(null);
+                  setAnswerError(null);
                   setQuestion('');
                 }}
                 className="px-8 py-3 bg-cyan-400 text-dark-900 font-bold rounded-xl hover:bg-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-400"
