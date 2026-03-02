@@ -1,0 +1,1 @@
+"""VisionAssist backend application package."""

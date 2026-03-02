@@ -62,3 +62,55 @@ dist/
 # Temporary files
 *.tmp
 *.temp
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+.pytest_cache/
+.mypy_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment variables / secrets
+.env
+.env.*
+!.env.example
+.envrc
+*.pem
+*.key
+*.crt
+
+# Tooling
+.idea/
+.vscode/
+
+# Logs
+*.log
+
+# Coverage / test artifacts
+.coverage
+htmlcov/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Node.js
+node_modules/
+
+# Local debug scripts
+debug_runtime_check.py
