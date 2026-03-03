@@ -34,7 +34,9 @@ const DashboardPage = () => {
           imageName: item.image_filename,
           date: item.created_at,
           description: item.caption,
-          objectsDetected: item.objects_detected ?? 0,
+          objectsDetected: Array.isArray(item.objects_detected)
+            ? item.objects_detected.length
+            : (item.objects_detected ?? 0),
         }));
         setHistory(normalised);
       } catch (err) {

@@ -1,72 +1,92 @@
-# SceneIQ Frontend - Sprint 1
+# SceneIQ
 
-AI-powered visual assistance platform helping visually impaired users understand their surroundings through image analysis, scene descriptions, and audio output.
+AI-powered visual accessibility assistant that helps users understand their surroundings through real-time image analysis, scene descriptions, and audio output.
 
-## Project Overview
+---
 
-This is a **Sprint 1 prototype** built with **mock data only** - no backend integration yet. All API calls are simulated with delays to mimic real network requests.
+## Overview
+
+SceneIQ is a full-stack web application designed for visual accessibility. Users upload an image or use their webcam, and the system returns:
+
+- A natural-language scene description (image captioning)
+- A list of detected objects with confidence scores
+- Answers to follow-up questions about the image
+- Audio playback of all results via Web Speech API
+
+---
 
 ## Tech Stack
 
-- **React.js** 18.2.0 (functional components with hooks)
-- **React Router** 6.22.0 (client-side routing)
-- **Tailwind CSS** 3.4.1 (utility-first styling)
-- **Web Speech API** (text-to-speech functionality)
+### Frontend
+- **React 18** — functional components with hooks
+- **React Router 6** — client-side routing with protected routes
+- **Tailwind CSS 3** — dark theme design system
+- **Web Speech API** — text-to-speech for all analysis results
 
-## Features Implemented
+### Backend
+- **FastAPI** — REST API with automatic OpenAPI docs
+- **SQLAlchemy 2 + Alembic** — ORM and database migrations
+- **PostgreSQL 16** — primary database
+- **Upstash Redis** (TLS) — JWT token blacklist on logout
+- **python-jose** — JWT signing/verification
+- **bcrypt** — password hashing (direct, no passlib)
 
-### Pages
-1. **Landing Page** (`/`) - Hero section with feature cards
-2. **Register Page** (`/register`) - User registration with validation
-3. **Login Page** (`/login`) - User authentication
-4. **Dashboard Page** (`/dashboard`) - Statistics and analysis history
-5. **Upload & Analysis Page** (`/upload`) - Image upload, analysis, and Q&A
-6. **Profile Page** (`/profile`) - User settings and accessibility preferences
+### ML Models
+- **YOLOv8n** — object detection (COCO val2017: mAP50 37.3%)
+- **BLIP-base** — image captioning (COCO BLEU-4: 39.4%)
+- **BLIP-VQA-base** — visual question answering (VQAv2: 78.5%)
 
-### Accessibility Features (WCAG 2.1 AA Compliant)
-- ✅ All interactive elements are keyboard navigable
-- ✅ Visible focus indicators on all focusable elements
-- ✅ Proper ARIA labels and roles throughout
-- ✅ Skip-to-content link for screen readers
-- ✅ Color contrast meets 4.5:1 minimum ratio
-- ✅ Form labels associated with inputs
-- ✅ Status messages with `role="alert"` or `role="status"`
-- ✅ Speech rate and voice customization
-- ✅ High contrast mode toggle
-- ✅ Font size adjustment
+---
 
-### Key Components
-- **Navbar** - Responsive navigation with auth state
-- **Footer** - Information and quick links
-- **ProtectedRoute** - Route guard for authenticated pages
-- **AuthContext** - State management (in-memory, no localStorage)
+## Features
 
-## Installation & Setup
+| Feature | Status |
+|---|---|
+| User registration & login | Live |
+| JWT auth with Redis token blacklist | Live |
+| Profile view & update | Live |
+| Image upload & analysis (caption + objects) | Live |
+| Visual question answering | Live |
+| Analysis history (last 50) | Live |
+| Webcam capture | Live |
+| Text-to-speech playback | Live |
+| WCAG 2.1 AA keyboard navigation | Live |
 
-1. **Install dependencies:**
-   ```bash
-   npm install
-   ```
-
-2. **Start development server:**
-   ```bash
-   npm start
-   ```
-
-3. **Access the app:**
-   Open [http://localhost:3000](http://localhost:3000) in your browser
+---
 
 ## Project Structure
 
 ```
-
-├── public/
-│   └── index.html
-├── src/
+SceneIQ/
+├── app/                        # FastAPI backend
+│   ├── main.py                 # App entry, CORS, router registration
+│   ├── config.py               # Settings (env vars)
+│   ├── database.py             # SQLAlchemy engine & session
+│   ├── middleware/
+│   │   └── auth_middleware.py  # JWT extraction & user ID resolution
+│   ├── models/
+│   │   ├── user.py
+│   │   └── analysis_history.py
+│   ├── routers/
+│   │   ├── auth.py             # /api/auth — register, login, logout
+│   │   ├── users.py            # /api/users — profile get/update
+│   │   └── images.py           # /api/images — analyze, ask, history
+│   ├── schemas/
+│   │   ├── auth.py
+│   │   ├── user.py
+│   │   └── image.py
+│   └── services/
+│       ├── auth_service.py     # JWT creation & verification
+│       └── ml_service.py       # YOLOv8 + BLIP model inference
+├── alembic/                    # DB migrations
+├── src/                        # React frontend
 │   ├── components/
+│   │   ├── Logo.jsx
 │   │   ├── Navbar.jsx
 │   │   ├── Footer.jsx
 │   │   └── ProtectedRoute.jsx
+│   ├── context/
+│   │   └── AuthContext.jsx     # Auth state (localStorage persistence)
 │   ├── pages/
 │   │   ├── LandingPage.jsx
 │   │   ├── LoginPage.jsx
@@ -74,180 +94,162 @@ This is a **Sprint 1 prototype** built with **mock data only** - no backend inte
 │   │   ├── DashboardPage.jsx
 │   │   ├── UploadPage.jsx
 │   │   └── ProfilePage.jsx
-│   ├── services/
-│   │   └── api.js          # Mock API calls
-│   ├── context/
-│   │   └── AuthContext.jsx # Auth state management
-│   ├── App.jsx
-│   ├── index.js
-│   └── index.css
-├── tailwind.config.js
-├── package.json
-└── README.md
+│   └── services/
+│       └── api.js              # All fetch calls to the backend
+├── docker-compose.yml
+├── Dockerfile
+├── requirements.txt
+└── package.json
 ```
 
-## Mock API Services
+---
 
-All backend calls are simulated in `src/services/api.js`:
+## API Endpoints
 
-- `mockLogin(email, password)` - Simulates login (1.2s delay)
-- `mockRegister(name, email, password)` - Simulates registration (1.2s delay)
-- `mockGetProfile()` - Returns mock user profile (0.5s delay)
-- `mockGetHistory()` - Returns mock analysis history (0.8s delay)
-- `mockAnalyzeImage(imageFile)` - Returns mock analysis results (2.5s delay)
-- `mockAskQuestion(question)` - Returns mock answer (1s delay)
-- `mockUpdatePreferences(preferences)` - Simulates saving preferences (0.6s delay)
+### Authentication — `/api/auth`
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| POST | `/register` | — | Create account |
+| POST | `/login` | — | Returns JWT access token |
+| POST | `/logout` | Bearer | Blacklists token in Redis |
 
-## Testing the App
+### Users — `/api/users`
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| GET | `/profile` | Bearer | Get current user profile |
+| PUT | `/profile` | Bearer | Update name / preferences |
 
-### Registration & Login
-1. Navigate to `/register`
-2. Fill in the form with any valid data (password must be 8+ characters)
-3. Submit to be auto-logged in and redirected to dashboard
+### Image Analysis — `/api/images`
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| POST | `/analyze` | Bearer | Upload image → caption + detected objects |
+| POST | `/ask` | Bearer | Answer question about a stored analysis |
+| POST | `/analyze-and-ask` | Bearer | Analyze + answer in one request |
+| GET | `/history` | Bearer | Last 50 analyses for current user |
+| GET | `/metrics` | — | Model performance benchmarks |
 
-### Image Analysis
-1. Go to `/upload`
-2. Upload an image (JPEG, PNG, or WebP) or use webcam
-3. Click "Analyze Image"
-4. View scene description and detected objects
-5. Ask questions about the image
-6. Use the 🔊 buttons to hear audio descriptions
+### Health
+| Method | Path | Description |
+|---|---|---|
+| GET | `/api/health` | DB connectivity check |
 
-### Accessibility Testing
-1. Navigate using only Tab and Shift+Tab
-2. Activate elements with Enter or Space
-3. Check focus indicators are visible
-4. Test speech synthesis on Dashboard and Upload pages
-5. Adjust preferences in Profile page
+---
 
-## Important Notes
+## Local Setup
 
-### State Management
-- All auth state is stored **in React context only** (not localStorage)
-- User session is lost on page refresh (intentional for Sprint 1)
-- Sprint 2 will integrate real backend with token persistence
+### Prerequisites
+- Node.js 18+
+- Python 3.11+
+- PostgreSQL 16
+- Redis (or use Docker Compose)
 
-### Mock Data
-- Login accepts any email/password combination
-- Analysis results are hardcoded
-- History shows 3 sample analyses
-- Statistics are fixed numbers
-
-### Browser Compatibility
-- Requires modern browser with Web Speech API support
-- Webcam feature requires HTTPS in production (works on localhost)
-- Best tested in Chrome, Firefox, Safari, and Edge
-
-## Keyboard Navigation Guide
-
-- **Tab** - Move forward through interactive elements
-- **Shift + Tab** - Move backward
-- **Enter/Space** - Activate buttons and links
-- **Arrow Keys** - Navigate radio groups and sliders
-- **Esc** - Close modals
-
-## Accessibility Features Testing
-
-### Screen Reader Testing
-- All images have descriptive alt text
-- Form inputs have proper labels
-- Status messages announce properly
-- Focus management on route changes
-
-### Color Contrast
-- Primary blue: #2563eb (accessible on white)
-- Text colors meet WCAG AA standards
-- High contrast mode available in Profile
-
-### Speech Synthesis
-- Adjustable speech rate (0.5x - 2.0x)
-- Voice selection from available system voices
-- Play/Stop controls with proper ARIA states
-
-## Next Steps (Sprint 2)
-
-- [ ] Connect to FastAPI backend
-- [ ] Replace mock API calls with real fetch() requests
-- [ ] Implement JWT token management
-- [ ] Add real image upload and AI analysis
-- [ ] Integrate actual object detection model
-- [ ] Add session persistence (optional)
-
-## Build for Production
+### Backend
 
 ```bash
-npm run build
+# Create and activate virtual environment
+python -m venv venv
+source venv/bin/activate   # Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Configure environment
+cp .env.example .env
+# Edit .env — set DATABASE_URL, JWT_SECRET, REDIS_URL
+
+# Run migrations
+alembic upgrade head
+
+# Start API server
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-Creates optimized production build in `build/` directory.
+API available at `http://localhost:8000`
+Swagger docs at `http://localhost:8000/docs`
 
-## License
+### Frontend
 
-MIT License - See LICENSE file for details
+```bash
+# Install dependencies
+npm install
 
-## Support
+# Start dev server
+npm start
+```
 
-For questions or issues, contact: support@sceneiq.com
-# SceneIQ Backend (Sprint 1)
+Frontend available at `http://localhost:3000`
 
-FastAPI backend for authentication, user profile CRUD, and foundational database schema.
+---
 
-## Stack
-- FastAPI + SQLAlchemy + Alembic
-- PostgreSQL (primary DB)
-- Redis (connection configured for future session caching)
-- JWT auth (`python-jose`) + password hashing (`passlib[bcrypt]`)
-- Docker + Docker Compose
+## Docker Compose (Recommended)
 
-## Quick Start
-
-From the project root directory:
+Starts the API, PostgreSQL, and Redis together:
 
 ```bash
 docker compose up --build
 ```
 
-This starts:
-- API at `http://localhost:8000`
-- Swagger docs at `http://localhost:8000/docs`
-- PostgreSQL on `localhost:5432`
-- Redis on `localhost:6379`
+Runs migrations automatically on startup, then serves the API at `http://localhost:8000`.
 
-On startup, the API container runs:
-1. `alembic upgrade head`
-2. `uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload`
+**Note:** The Docker Compose setup uses a local Redis instance. For production, set `REDIS_URL` to your Upstash TLS connection string (`rediss://...`).
+
+---
 
 ## Environment Variables
 
-- `DATABASE_URL` (e.g. `postgresql://postgres:postgres@db:5432/visionassist`)
-- `JWT_SECRET`
-- `JWT_ALGORITHM` (default `HS256`)
-- `ACCESS_TOKEN_EXPIRE_MINUTES` (default `60`)
-- `REDIS_URL`
+| Variable | Description | Default |
+|---|---|---|
+| `DATABASE_URL` | PostgreSQL connection string | — |
+| `JWT_SECRET` | Secret key for signing JWTs | — |
+| `JWT_ALGORITHM` | JWT signing algorithm | `HS256` |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | Token lifetime in minutes | `60` |
+| `REDIS_URL` | Redis connection string | — |
 
-## Implemented Endpoints
+---
 
-- `POST /api/auth/register`
-- `POST /api/auth/login`
-- `POST /api/auth/logout` (JWT required)
-- `GET /api/users/profile` (JWT required)
-- `PUT /api/users/profile` (JWT required)
-- `GET /api/health`
+## Database Schema
 
-## Migration
+Managed by Alembic (current head: `20260216_01`).
 
-Initial migration creates:
-- `users`
-- `analysis_history`
+**`users`**
+- `id` (UUID, PK)
+- `email` (unique, indexed)
+- `name`
+- `hashed_password`
+- `created_at`
 
-including indexes:
-- `idx_users_email`
-- `idx_history_user_id`
+**`analysis_history`**
+- `id` (UUID, PK)
+- `user_id` (FK → users, indexed)
+- `image_filename`
+- `caption`
+- `objects_detected` (JSON)
+- `created_at`
 
-## Swagger Flow Test
+---
 
-1. `POST /api/auth/register`
-2. `POST /api/auth/login`
-3. Click **Authorize** in Swagger and paste `Bearer <access_token>`
-4. `GET /api/users/profile`
-5. `PUT /api/users/profile`
+## Model Performance
+
+| Model | Task | Benchmark | Score |
+|---|---|---|---|
+| YOLOv8n | Object detection | COCO val2017 mAP50 | 37.3% |
+| BLIP-base | Image captioning | COCO BLEU-4 | 39.4% |
+| BLIP-VQA-base | Visual QA | VQAv2 accuracy | 78.5% |
+
+---
+
+## Accessibility
+
+- WCAG 2.1 AA compliant
+- Full keyboard navigation (Tab, Shift+Tab, Enter/Space, Arrow Keys)
+- Skip-to-content link for screen readers
+- ARIA labels and `role="alert"` / `role="status"` on dynamic content
+- Adjustable speech rate (0.5x–2.0x) and voice selection
+- High contrast mode toggle
+- Font size adjustment
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE) for details.
