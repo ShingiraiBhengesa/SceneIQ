@@ -9,6 +9,12 @@ const apiFetch = async (path, options = {}) => {
 
   const res = await fetch(`${BASE_URL}${path}`, { ...options, headers });
   if (!res.ok) {
+    if (res.status === 401) {
+      // Token expired or revoked — clear auth state and force re-login
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.dispatchEvent(new Event('auth:expired'));
+    }
     const err = await res.json().catch(() => ({}));
     throw new Error(err.detail || 'Request failed');
   }
