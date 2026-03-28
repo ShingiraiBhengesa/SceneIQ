@@ -1,6 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { apiAnalyzeImage, apiAskQuestion } from '../services/api';
 
+const TypingIndicator = () => (
+  <div className="flex items-center gap-1 px-4 py-3">
+    <span className="w-2 h-2 rounded-full bg-gray-500 animate-bounce" style={{ animationDelay: '0ms' }} />
+    <span className="w-2 h-2 rounded-full bg-gray-500 animate-bounce" style={{ animationDelay: '150ms' }} />
+    <span className="w-2 h-2 rounded-full bg-gray-500 animate-bounce" style={{ animationDelay: '300ms' }} />
+  </div>
+);
+
 const UploadPage = () => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
@@ -10,10 +18,10 @@ const UploadPage = () => {
   const [imgNaturalSize, setImgNaturalSize] = useState({ width: 1, height: 1 });
   const [error, setError] = useState(null);
   const [question, setQuestion] = useState('');
-  const [answer, setAnswer] = useState(null);
+  const [qaHistory, setQaHistory] = useState([]);
   const [loadingAnswer, setLoadingAnswer] = useState(false);
-  const [answerError, setAnswerError] = useState(null);
   const [speaking, setSpeaking] = useState(null);
+  const qaEndRef = useRef(null);
   const [dragActive, setDragActive] = useState(false);
   const [webcamStream, setWebcamStream] = useState(null);
   const [showWebcam, setShowWebcam] = useState(false);
@@ -71,10 +79,9 @@ const UploadPage = () => {
       setSelectedFile(file);
       setPreviewUrl(URL.createObjectURL(file));
       setResults(null);
-      setAnswer(null);
+      setQaHistory([]);
       setImageId(null);
       setError(null);
-      setAnswerError(null);
       setShowWebcam(false);
     } else {
       setError('Please select a valid image file (JPEG, PNG, or WebP)');
@@ -159,17 +166,26 @@ const UploadPage = () => {
     if (!questionText.trim() || !imageId) return;
 
     setLoadingAnswer(true);
-    setAnswerError(null);
+    setQuestion('');
+
+    const entry = { id: Date.now(), question: questionText, answer: null };
+    setQaHistory(prev => [...prev, entry]);
+
+    // Scroll to typing indicator after state update
+    setTimeout(() => qaEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+
     try {
       const response = await apiAskQuestion(imageId, questionText);
-      setAnswer(response.answer);
-      if (!suggestedQuestion) {
-        setQuestion('');
-      }
+      setQaHistory(prev =>
+        prev.map(q => q.id === entry.id ? { ...q, answer: response.answer } : q)
+      );
     } catch (err) {
-      setAnswerError(err.message || 'Failed to get answer. Please try again.');
+      setQaHistory(prev =>
+        prev.map(q => q.id === entry.id ? { ...q, answer: null, error: err.message || 'Failed to get answer.' } : q)
+      );
     } finally {
       setLoadingAnswer(false);
+      setTimeout(() => qaEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
     }
   };
 
@@ -414,20 +430,21 @@ const UploadPage = () => {
 
             {/* Visual Q&A Section */}
             <section className="bg-dark-800 border border-dark-700 rounded-2xl p-8 mb-8" aria-labelledby="qa-heading">
-              <h2 id="qa-heading" className="text-xl font-semibold text-white mb-4">
+              <h2 id="qa-heading" className="text-xl font-semibold text-white mb-1">
                 Ask Questions About This Image
               </h2>
+              <p className="text-sm text-gray-500 mb-5">Get instant answers about what's in the scene</p>
 
               {/* Suggested Questions */}
-              <div className="mb-4">
-                <p className="text-sm text-gray-400 mb-2">Suggested questions:</p>
+              <div className="mb-5">
+                <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">Suggested questions</p>
                 <div className="flex flex-wrap gap-2">
                   {results.suggestedQuestions.map((sq, idx) => (
                     <button
                       key={idx}
                       onClick={(e) => handleAskQuestion(e, sq)}
                       disabled={loadingAnswer}
-                      className="px-2.5 py-1 text-xs rounded-full bg-dark-700 text-cyan-400 border border-dark-600 hover:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 disabled:opacity-50"
+                      className="px-3 py-1.5 text-xs rounded-full bg-dark-700 text-cyan-400 border border-dark-600 hover:border-cyan-400 hover:bg-dark-600 transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-400 disabled:opacity-40 disabled:cursor-not-allowed"
                       aria-label={`Ask: ${sq}`}
                     >
                       {sq}
@@ -436,10 +453,61 @@ const UploadPage = () => {
                 </div>
               </div>
 
+              {/* Conversation Thread */}
+              {qaHistory.length > 0 && (
+                <div
+                  className="mb-5 space-y-4 max-h-96 overflow-y-auto pr-1"
+                  role="log"
+                  aria-live="polite"
+                  aria-label="Question and answer conversation"
+                >
+                  {qaHistory.map((entry) => (
+                    <div key={entry.id} className="space-y-2">
+                      {/* User question bubble */}
+                      <div className="flex justify-end">
+                        <div className="max-w-[80%] bg-cyan-400/10 border border-cyan-400/20 text-cyan-300 rounded-2xl rounded-tr-sm px-4 py-2.5 text-sm">
+                          {entry.question}
+                        </div>
+                      </div>
+
+                      {/* Answer bubble or loading */}
+                      <div className="flex justify-start items-end gap-2">
+                        <div className="w-7 h-7 rounded-full bg-dark-700 border border-dark-600 flex items-center justify-center flex-shrink-0 text-xs">
+                          🤖
+                        </div>
+                        {entry.error ? (
+                          <div className="max-w-[80%] bg-red-500/10 border border-red-500/20 text-red-400 rounded-2xl rounded-tl-sm px-4 py-2.5 text-sm">
+                            {entry.error}
+                          </div>
+                        ) : entry.answer == null ? (
+                          <div className="bg-dark-700 border border-dark-600 rounded-2xl rounded-tl-sm">
+                            <TypingIndicator />
+                          </div>
+                        ) : (
+                          <div className="max-w-[80%] bg-dark-700 border border-dark-600 text-gray-200 rounded-2xl rounded-tl-sm px-4 py-2.5 text-sm leading-relaxed flex items-start justify-between gap-3">
+                            <span>{entry.answer}</span>
+                            <button
+                              onClick={() => handleSpeak(entry.answer, entry.id)}
+                              className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-lg bg-dark-600 hover:bg-cyan-400/20 text-gray-400 hover:text-cyan-400 transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                              aria-label={speaking === entry.id ? 'Stop reading' : 'Read aloud'}
+                              aria-pressed={speaking === entry.id}
+                              title={speaking === entry.id ? 'Stop' : 'Read aloud'}
+                            >
+                              {speaking === entry.id ? '⏹' : '🔊'}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  <div ref={qaEndRef} />
+                </div>
+              )}
+
               {/* Question Input */}
-              <form onSubmit={handleAskQuestion} className="mb-4">
-                <label htmlFor="question-input" className="block text-sm font-medium text-gray-300 mb-2">
-                  Or type your own question:
+              <form onSubmit={handleAskQuestion}>
+                <label htmlFor="question-input" className="block text-sm font-medium text-gray-400 mb-2">
+                  {qaHistory.length === 0 ? 'Or type your own question:' : 'Ask another question:'}
                 </label>
                 <div className="flex gap-2">
                   <input
@@ -448,43 +516,25 @@ const UploadPage = () => {
                     value={question}
                     onChange={(e) => setQuestion(e.target.value)}
                     placeholder="What would you like to know about this image?"
-                    className="flex-1 px-4 py-2 bg-dark-700 border border-dark-600 text-gray-300 placeholder-gray-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                    className="flex-1 px-4 py-2.5 bg-dark-700 border border-dark-600 text-gray-200 placeholder-gray-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent transition-colors"
                     aria-label="Type your question about the image"
+                    disabled={loadingAnswer}
                   />
                   <button
                     type="submit"
                     disabled={loadingAnswer || !question.trim()}
-                    className="px-6 py-2 bg-cyan-400 text-dark-900 font-bold rounded-xl hover:bg-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-6 py-2.5 bg-cyan-400 text-dark-900 font-bold rounded-xl hover:bg-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
                     aria-label="Submit question"
                   >
-                    {loadingAnswer ? 'Asking...' : 'Ask'}
+                    {loadingAnswer ? (
+                      <span className="flex items-center gap-2">
+                        <span className="w-4 h-4 border-2 border-dark-900/30 border-t-dark-900 rounded-full animate-spin" />
+                        Asking
+                      </span>
+                    ) : 'Ask'}
                   </button>
                 </div>
               </form>
-
-              {answerError && (
-                <div className="mb-4 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl p-4" role="alert">
-                  {answerError}
-                </div>
-              )}
-
-              {/* Answer */}
-              {answer && (
-                <div className="bg-green-500/10 border border-green-500/30 text-green-400 rounded-xl p-4" role="region" aria-live="polite">
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-semibold text-green-400">Answer:</h3>
-                    <button
-                      onClick={() => handleSpeak(answer, 'answer')}
-                      className="px-3 py-1 bg-cyan-400 text-dark-900 font-bold rounded-xl text-sm hover:bg-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-400"
-                      aria-label={speaking === 'answer' ? 'Stop reading answer' : 'Read answer aloud'}
-                      aria-pressed={speaking === 'answer'}
-                    >
-                      🔊 {speaking === 'answer' ? 'Stop' : 'Play'}
-                    </button>
-                  </div>
-                  <p className="text-green-400">{answer}</p>
-                </div>
-              )}
             </section>
 
             {/* New Analysis Button */}
@@ -494,10 +544,9 @@ const UploadPage = () => {
                   setSelectedFile(null);
                   setPreviewUrl(null);
                   setResults(null);
-                  setAnswer(null);
+                  setQaHistory([]);
                   setImageId(null);
                   setError(null);
-                  setAnswerError(null);
                   setQuestion('');
                 }}
                 className="px-8 py-3 bg-cyan-400 text-dark-900 font-bold rounded-xl hover:bg-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-400"

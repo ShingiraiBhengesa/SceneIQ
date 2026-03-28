@@ -1,4 +1,5 @@
 import io
+from pathlib import Path
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
@@ -12,6 +13,9 @@ from app.schemas.image import AnalyzeResponse, AskRequest, AskResponse, HistoryR
 from app.services.ml_service import ml_service
 
 router = APIRouter()
+
+UPLOADS_DIR = Path("uploads")
+UPLOADS_DIR.mkdir(exist_ok=True)
 
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
 ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp"}
@@ -52,6 +56,10 @@ async def analyze_image(
     db.commit()
     db.refresh(analysis)
 
+    # Save image to disk so the /ask endpoint can run VQA against it
+    image_path = UPLOADS_DIR / f"{analysis.id}.jpg"
+    image.save(image_path, format="JPEG")
+
     return {
         "image_id": str(analysis.id),
         "caption": caption,
@@ -76,12 +84,15 @@ async def ask_question(
     if not analysis:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
 
-    # Derive answer from caption + detected objects without re-uploading the image
-    objects_str = ", ".join(
-        d["label"] for d in (analysis.objects_detected or [])
-    )
-    context = f"Caption: {analysis.caption}. Objects detected: {objects_str}."
-    answer = f"Based on the analysis — {context} Question: {request.question}"
+    image_path = UPLOADS_DIR / f"{request.image_id}.jpg"
+    if not image_path.exists():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Image file not found. Please re-upload and analyze the image.",
+        )
+
+    image = Image.open(image_path).convert("RGB")
+    answer = ml_service.answer_question(image, request.question)
 
     return {"answer": answer}
 
