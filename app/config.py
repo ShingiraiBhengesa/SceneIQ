@@ -22,7 +22,8 @@ class Settings:
 
     def __post_init__(self) -> None:
         if self.cors_origins is None:
-            self.cors_origins = ["http://localhost:3000"]
+            raw = os.getenv("CORS_ORIGINS", "http://localhost:3000")
+            self.cors_origins = [o.strip() for o in raw.split(",")]
 
 
 settings = Settings()
