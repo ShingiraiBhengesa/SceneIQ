@@ -16,6 +16,8 @@ services:
         sync: false
       - key: CORS_ORIGINS
         value: https://sceneiq-frontend.onrender.com
+      - key: HF_TOKEN
+        sync: false
 
   - type: web
     name: sceneiq-frontend

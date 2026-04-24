@@ -1,69 +1,65 @@
 import io
 
-import torch
+from huggingface_hub import InferenceClient
 from PIL import Image
-from transformers import BlipForConditionalGeneration, BlipForQuestionAnswering, BlipProcessor
-from ultralytics import YOLO
+
+from app.config import settings
+
+_DETECTION_MODEL = "facebook/detr-resnet-50"
+_CAPTION_MODEL = "Salesforce/blip-image-captioning-base"
+_VQA_MODEL = "Salesforce/blip-vqa-base"
+
+
+def _image_to_bytes(image: Image.Image) -> bytes:
+    buf = io.BytesIO()
+    image.save(buf, format="JPEG")
+    return buf.getvalue()
 
 
 class MLService:
     def __init__(self):
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.yolo_model = None
-        self.caption_processor = None
-        self.caption_model = None
-        self.vqa_processor = None
-        self.vqa_model = None
+        self._client: InferenceClient | None = None
 
     def load_models(self):
-        """Call once at startup. Models are loaded into memory."""
-        print("Loading YOLOv8 model...")
-        self.yolo_model = YOLO("yolov8n.pt")  # nano model, ~6MB, 80 COCO categories
+        """Initialise the HF Inference client. No local weights are downloaded."""
+        print("Initialising Hugging Face Inference client...")
+        self._client = InferenceClient(token=settings.hf_token or None)
+        print("HF Inference client ready.")
 
-        print("Loading BLIP captioning model...")
-        self.caption_processor = BlipProcessor.from_pretrained(
-            "Salesforce/blip-image-captioning-base"
-        )
-        self.caption_model = BlipForConditionalGeneration.from_pretrained(
-            "Salesforce/blip-image-captioning-base"
-        ).to(self.device)
-
-        print("Loading BLIP VQA model...")
-        self.vqa_processor = BlipProcessor.from_pretrained("Salesforce/blip-vqa-base")
-        self.vqa_model = BlipForQuestionAnswering.from_pretrained(
-            "Salesforce/blip-vqa-base"
-        ).to(self.device)
-
-        print("All models loaded successfully!")
+    @property
+    def client(self) -> InferenceClient:
+        if self._client is None:
+            self._client = InferenceClient(token=settings.hf_token or None)
+        return self._client
 
     def detect_objects(self, image: Image.Image) -> list:
-        """Run YOLOv8 on an image. Returns list of detections."""
-        results = self.yolo_model(image, verbose=False)
-        detections = []
-        for result in results:
-            for box in result.boxes:
-                detections.append({
-                    "label": result.names[int(box.cls[0])],
-                    "confidence": round(float(box.conf[0]), 3),
-                    "bbox": [round(float(c), 1) for c in box.xyxy[0].tolist()],
-                    # bbox = [x1, y1, x2, y2] in pixel coordinates
-                })
-        return detections
+        """Run object detection via HF Inference API."""
+        results = self.client.object_detection(_image_to_bytes(image), model=_DETECTION_MODEL)
+        return [
+            {
+                "label": r.label,
+                "confidence": round(r.score, 3),
+                "bbox": [r.box.xmin, r.box.ymin, r.box.xmax, r.box.ymax],
+            }
+            for r in results
+        ]
 
     def generate_caption(self, image: Image.Image) -> str:
-        """Generate a natural language caption for the image."""
-        inputs = self.caption_processor(image, return_tensors="pt").to(self.device)
-        with torch.no_grad():
-            output = self.caption_model.generate(**inputs, max_new_tokens=100)
-        return self.caption_processor.decode(output[0], skip_special_tokens=True)
+        """Generate a natural language caption via HF Inference API."""
+        result = self.client.image_to_text(_image_to_bytes(image), model=_CAPTION_MODEL)
+        # result is a string or ImageToTextOutput depending on hub version
+        return result.generated_text if hasattr(result, "generated_text") else str(result)
 
     def answer_question(self, image: Image.Image, question: str) -> str:
-        """Answer a question about the image using BLIP VQA."""
-        inputs = self.vqa_processor(image, question, return_tensors="pt").to(self.device)
-        with torch.no_grad():
-            output = self.vqa_model.generate(**inputs, max_new_tokens=50)
-        return self.vqa_processor.decode(output[0], skip_special_tokens=True)
+        """Answer a visual question via HF Inference API."""
+        result = self.client.visual_question_answering(
+            _image_to_bytes(image), question=question, model=_VQA_MODEL
+        )
+        # Returns a list of answers ranked by score; take the top one
+        if isinstance(result, list) and result:
+            return result[0].answer
+        return str(result)
 
 
-# Singleton — loaded once at startup via app.on_event("startup")
+# Singleton
 ml_service = MLService()
