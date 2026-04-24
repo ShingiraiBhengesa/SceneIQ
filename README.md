@@ -1,12 +1,18 @@
 # SceneIQ
 
-AI-powered visual accessibility assistant that helps users understand their surroundings through real-time image analysis, scene descriptions, and audio output.
+An AI-powered visual accessibility assistant that helps users understand their surroundings through image analysis, scene descriptions, and audio output.
+
+## Live Demo
+
+- **Frontend:** https://sceneiq-frontend.onrender.com
+- **Backend API:** https://sceneiq-backend.onrender.com
+- **API Docs:** https://sceneiq-backend.onrender.com/docs
 
 ---
 
 ## Overview
 
-SceneIQ is a full-stack web application designed for visual accessibility. Users upload an image or use their webcam, and the system returns:
+SceneIQ is a full-stack web application designed for visual accessibility. Users upload an image and the system returns:
 
 - A natural-language scene description (image captioning)
 - A list of detected objects with confidence scores
@@ -26,15 +32,19 @@ SceneIQ is a full-stack web application designed for visual accessibility. Users
 ### Backend
 - **FastAPI** — REST API with automatic OpenAPI docs
 - **SQLAlchemy 2 + Alembic** — ORM and database migrations
-- **PostgreSQL 16** — primary database
+- **PostgreSQL** — primary database (Supabase)
 - **Upstash Redis** (TLS) — JWT token blacklist on logout
 - **python-jose** — JWT signing/verification
 - **bcrypt** — password hashing (direct, no passlib)
 
-### ML Models
-- **YOLOv8n** — object detection (COCO val2017: mAP50 37.3%)
-- **BLIP-base** — image captioning (COCO BLEU-4: 39.4%)
-- **BLIP-VQA-base** — visual question answering (VQAv2: 78.5%)
+### AI / ML
+- **Groq API** (`meta-llama/llama-4-scout-17b-16e-instruct`) — vision model powering captioning, object detection, and visual Q&A
+- All inference is remote — no local model weights, minimal memory footprint
+
+### Infrastructure
+- **Database:** Supabase (PostgreSQL via connection pooler, port 6543)
+- **Cache / Token Blacklist:** Upstash Redis (TLS)
+- **Deployment:** Render Blueprint (Docker backend + static frontend)
 
 ---
 
@@ -48,7 +58,6 @@ SceneIQ is a full-stack web application designed for visual accessibility. Users
 | Image upload & analysis (caption + objects) | Live |
 | Visual question answering | Live |
 | Analysis history (last 50) | Live |
-| Webcam capture | Live |
 | Text-to-speech playback | Live |
 | WCAG 2.1 AA keyboard navigation | Live |
 
@@ -72,12 +81,12 @@ SceneIQ/
 │   │   ├── users.py            # /api/users — profile get/update
 │   │   └── images.py           # /api/images — analyze, ask, history
 │   ├── schemas/
-│   │   ├── auth.py
 │   │   ├── user.py
 │   │   └── image.py
 │   └── services/
-│       ├── auth_service.py     # JWT creation & verification
-│       └── ml_service.py       # YOLOv8 + BLIP model inference
+│       ├── auth_service.py     # JWT creation & password hashing
+│       ├── ml_service.py       # Groq vision API wrapper
+│       └── token_blacklist.py  # Redis token blacklist
 ├── alembic/                    # DB migrations
 ├── src/                        # React frontend
 │   ├── components/
@@ -96,8 +105,8 @@ SceneIQ/
 │   │   └── ProfilePage.jsx
 │   └── services/
 │       └── api.js              # All fetch calls to the backend
-├── docker-compose.yml
 ├── Dockerfile
+├── render.yaml                 # Render Blueprint config
 ├── requirements.txt
 └── package.json
 ```
@@ -140,22 +149,23 @@ SceneIQ/
 ### Prerequisites
 - Node.js 18+
 - Python 3.11+
-- PostgreSQL 16
-- Redis (or use Docker Compose)
+- PostgreSQL (or a Supabase project)
+- Upstash Redis instance
+- Groq API key — free at [console.groq.com](https://console.groq.com)
 
 ### Backend
 
 ```bash
 # Create and activate virtual environment
-python -m venv venv
-source venv/bin/activate   # Windows: venv\Scripts\activate
+python -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
 
 # Configure environment
 cp .env.example .env
-# Edit .env — set DATABASE_URL, JWT_SECRET, REDIS_URL
+# Edit .env — set DATABASE_URL, JWT_SECRET, REDIS_URL, GROQ_API_KEY
 
 # Run migrations
 alembic upgrade head
@@ -164,16 +174,13 @@ alembic upgrade head
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-API available at `http://localhost:8000`
+API available at `http://localhost:8000`  
 Swagger docs at `http://localhost:8000/docs`
 
 ### Frontend
 
 ```bash
-# Install dependencies
 npm install
-
-# Start dev server
 npm start
 ```
 
@@ -181,29 +188,42 @@ Frontend available at `http://localhost:3000`
 
 ---
 
-## Docker Compose (Recommended)
+## Environment Variables
 
-Starts the API, PostgreSQL, and Redis together:
+### Backend
 
-```bash
-docker compose up --build
-```
+| Variable | Description |
+|---|---|
+| `DATABASE_URL` | PostgreSQL connection string |
+| `JWT_SECRET` | Secret key for signing JWTs |
+| `JWT_ALGORITHM` | JWT signing algorithm (default: `HS256`) |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | Token lifetime in minutes (default: `60`) |
+| `REDIS_URL` | Upstash Redis URL (`rediss://...`) |
+| `GROQ_API_KEY` | Groq API key for vision inference |
+| `CORS_ORIGINS` | Comma-separated allowed frontend origins |
 
-Runs migrations automatically on startup, then serves the API at `http://localhost:8000`.
+### Frontend
 
-**Note:** The Docker Compose setup uses a local Redis instance. For production, set `REDIS_URL` to your Upstash TLS connection string (`rediss://...`).
+| Variable | Description |
+|---|---|
+| `REACT_APP_API_URL` | Backend base URL (set at build time) |
 
 ---
 
-## Environment Variables
+## Deployment (Render)
 
-| Variable | Description | Default |
-|---|---|---|
-| `DATABASE_URL` | PostgreSQL connection string | — |
-| `JWT_SECRET` | Secret key for signing JWTs | — |
-| `JWT_ALGORITHM` | JWT signing algorithm | `HS256` |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | Token lifetime in minutes | `60` |
-| `REDIS_URL` | Redis connection string | — |
+This project uses a Render Blueprint (`render.yaml`) to deploy both services.
+
+1. Fork this repo
+2. Connect it to Render → **New Blueprint**
+3. Set the following environment variables for `sceneiq-backend` in the Render dashboard:
+   - `DATABASE_URL`
+   - `JWT_SECRET`
+   - `REDIS_URL`
+   - `GROQ_API_KEY`
+4. Render builds and deploys both services automatically on every push to `main`
+
+> **Supabase note:** Free-tier projects pause after ~1 week of inactivity. Resume the project from the Supabase dashboard before redeploying if you see a database connection error.
 
 ---
 
@@ -215,7 +235,7 @@ Managed by Alembic (current head: `20260216_01`).
 - `id` (UUID, PK)
 - `email` (unique, indexed)
 - `name`
-- `hashed_password`
+- `password_hash`
 - `created_at`
 
 **`analysis_history`**
@@ -228,28 +248,15 @@ Managed by Alembic (current head: `20260216_01`).
 
 ---
 
-## Model Performance
-
-| Model | Task | Benchmark | Score |
-|---|---|---|---|
-| YOLOv8n | Object detection | COCO val2017 mAP50 | 37.3% |
-| BLIP-base | Image captioning | COCO BLEU-4 | 39.4% |
-| BLIP-VQA-base | Visual QA | VQAv2 accuracy | 78.5% |
-
----
-
 ## Accessibility
 
 - WCAG 2.1 AA compliant
-- Full keyboard navigation (Tab, Shift+Tab, Enter/Space, Arrow Keys)
-- Skip-to-content link for screen readers
-- ARIA labels and `role="alert"` / `role="status"` on dynamic content
-- Adjustable speech rate (0.5x–2.0x) and voice selection
-- High contrast mode toggle
-- Font size adjustment
+- Full keyboard navigation
+- ARIA labels and live regions on dynamic content
+- Text-to-speech playback with adjustable rate and voice selection
 
 ---
 
 ## License
 
-MIT — see [LICENSE](LICENSE) for details.
+MIT
