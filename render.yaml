@@ -18,6 +18,8 @@ services:
         value: https://sceneiq-frontend.onrender.com
       - key: HF_TOKEN
         sync: false
+      - key: GROQ_API_KEY
+        sync: false
 
   - type: web
     name: sceneiq-frontend

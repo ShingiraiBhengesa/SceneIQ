@@ -19,6 +19,7 @@ class Settings:
     access_token_expire_minutes: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
     redis_url: str = os.getenv("REDIS_URL", "redis://localhost:6379")
     hf_token: str = os.getenv("HF_TOKEN", "")
+    groq_api_key: str = os.getenv("GROQ_API_KEY", "")
     cors_origins: list[str] = None
 
     def __post_init__(self) -> None:
