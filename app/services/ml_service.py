@@ -6,7 +6,7 @@ from PIL import Image
 from app.config import settings
 
 _BASE_URL = "https://api-inference.huggingface.co/models"
-_DETECTION_MODEL = "facebook/detr-resnet-50"
+_DETECTION_MODEL = "hustvl/yolos-tiny"
 _CAPTION_MODEL = "Salesforce/blip-image-captioning-base"
 _VQA_MODEL = "Salesforce/blip-vqa-base"
 
@@ -28,26 +28,30 @@ class MLService:
 
     def detect_objects(self, image: Image.Image) -> list:
         """Run object detection via HF Inference API."""
-        response = requests.post(
-            f"{_BASE_URL}/{_DETECTION_MODEL}",
-            headers=_headers(),
-            data=_image_to_bytes(image),
-            timeout=30,
-        )
-        response.raise_for_status()
-        return [
-            {
-                "label": r["label"],
-                "confidence": round(r["score"], 3),
-                "bbox": [
-                    r["box"]["xmin"],
-                    r["box"]["ymin"],
-                    r["box"]["xmax"],
-                    r["box"]["ymax"],
-                ],
-            }
-            for r in response.json()
-        ]
+        try:
+            response = requests.post(
+                f"{_BASE_URL}/{_DETECTION_MODEL}",
+                headers=_headers(),
+                data=_image_to_bytes(image),
+                timeout=30,
+            )
+            response.raise_for_status()
+            return [
+                {
+                    "label": r["label"],
+                    "confidence": round(r["score"], 3),
+                    "bbox": [
+                        r["box"]["xmin"],
+                        r["box"]["ymin"],
+                        r["box"]["xmax"],
+                        r["box"]["ymax"],
+                    ],
+                }
+                for r in response.json()
+            ]
+        except Exception as e:
+            print(f"Object detection unavailable: {e}")
+            return []
 
     def generate_caption(self, image: Image.Image) -> str:
         """Generate a natural language caption via HF Inference API."""
