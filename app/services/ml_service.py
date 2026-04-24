@@ -7,7 +7,7 @@ from PIL import Image
 
 from app.config import settings
 
-_MODEL = "llama-3.2-11b-vision-preview"
+_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
 
 
 def _image_to_b64(image: Image.Image) -> str:
