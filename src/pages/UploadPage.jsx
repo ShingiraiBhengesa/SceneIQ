@@ -25,6 +25,7 @@ const UploadPage = () => {
   const [dragActive, setDragActive] = useState(false);
   const [webcamStream, setWebcamStream] = useState(null);
   const [showWebcam, setShowWebcam] = useState(false);
+  const [facingMode, setFacingMode] = useState('user');
 
   const fileInputRef = useRef(null);
   const videoRef = useRef(null);
@@ -105,15 +106,26 @@ const UploadPage = () => {
     }
   };
 
-  const handleWebcam = async () => {
+  const startCamera = async (mode) => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      if (webcamStream) {
+        webcamStream.getTracks().forEach(track => track.stop());
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: mode } });
       setWebcamStream(stream);
-      setShowWebcam(true); // video element mounts on next render; useEffect attaches srcObject
+      setFacingMode(mode);
+      setShowWebcam(true);
       setError(null);
     } catch {
-      setError('Unable to access webcam. Please check permissions.');
+      setError('Unable to access camera. Please check permissions.');
     }
+  };
+
+  const handleWebcam = () => startCamera(facingMode);
+
+  const handleFlipCamera = () => {
+    const nextMode = facingMode === 'user' ? 'environment' : 'user';
+    startCamera(nextMode);
   };
 
   const captureSnapshot = () => {
@@ -292,13 +304,20 @@ const UploadPage = () => {
                 aria-label="Webcam preview"
               />
               <canvas ref={canvasRef} className="hidden" />
-              <div className="flex gap-4">
+              <div className="flex gap-4 flex-wrap justify-center">
                 <button
                   onClick={captureSnapshot}
                   className="px-6 py-2 bg-cyan-400 text-dark-900 font-bold rounded-xl hover:bg-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-400"
                   aria-label="Capture snapshot from webcam"
                 >
                   Capture Photo
+                </button>
+                <button
+                  onClick={handleFlipCamera}
+                  className="px-6 py-2 border border-dark-600 text-gray-300 rounded-xl hover:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                  aria-label={`Switch to ${facingMode === 'user' ? 'back' : 'front'} camera`}
+                >
+                  🔄 Flip Camera
                 </button>
                 <button
                   onClick={() => {
