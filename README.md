@@ -60,6 +60,9 @@ SceneIQ is a full-stack web application designed for visual accessibility. Users
 | Analysis history (last 50) | Live |
 | Text-to-speech playback | Live |
 | WCAG 2.1 AA keyboard navigation | Live |
+| Privacy Policy page | Live |
+| Terms of Service page | Live |
+| Accessibility Statement page | Live |
 
 ---
 
@@ -102,7 +105,10 @@ SceneIQ/
 │   │   ├── RegisterPage.jsx
 │   │   ├── DashboardPage.jsx
 │   │   ├── UploadPage.jsx
-│   │   └── ProfilePage.jsx
+│   │   ├── ProfilePage.jsx
+│   │   ├── PrivacyPolicyPage.jsx
+│   │   ├── TermsOfServicePage.jsx
+│   │   └── AccessibilityStatementPage.jsx
 │   └── services/
 │       └── api.js              # All fetch calls to the backend
 ├── Dockerfile
