@@ -10,6 +10,9 @@ import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import UploadPage from './pages/UploadPage';
 import ProfilePage from './pages/ProfilePage';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
+import TermsOfServicePage from './pages/TermsOfServicePage';
+import AccessibilityStatementPage from './pages/AccessibilityStatementPage';
 
 function App() {
   return (
@@ -38,14 +41,17 @@ function App() {
                   </ProtectedRoute>
                 } 
               />
-              <Route 
-                path="/profile" 
+              <Route
+                path="/profile"
                 element={
                   <ProtectedRoute>
                     <ProfilePage />
                   </ProtectedRoute>
-                } 
+                }
               />
+              <Route path="/privacy" element={<PrivacyPolicyPage />} />
+              <Route path="/terms" element={<TermsOfServicePage />} />
+              <Route path="/accessibility" element={<AccessibilityStatementPage />} />
             </Routes>
           </div>
           <Footer />

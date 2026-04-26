@@ -38,9 +38,9 @@ const Footer = () => (
         <div>
           <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Legal</h3>
           <ul className="space-y-3 text-sm">
-            <li><FooterAnchor href="#privacy">Privacy Policy</FooterAnchor></li>
-            <li><FooterAnchor href="#terms">Terms of Service</FooterAnchor></li>
-            <li><FooterAnchor href="#accessibility">Accessibility Statement</FooterAnchor></li>
+            <li><FooterLink to="/privacy">Privacy Policy</FooterLink></li>
+            <li><FooterLink to="/terms">Terms of Service</FooterLink></li>
+            <li><FooterLink to="/accessibility">Accessibility Statement</FooterLink></li>
           </ul>
         </div>
       </div>
