@@ -62,3 +62,10 @@ dist/
 # Temporary files
 *.tmp
 *.temp
+
+# Python backend (tracked on back_end branch, not front_end)
+app/
+alembic/
+__pycache__/
+*.pyc
+*.pyo

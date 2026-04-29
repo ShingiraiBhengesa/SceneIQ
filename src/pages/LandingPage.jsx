@@ -75,7 +75,7 @@ const LandingPage = () => {
                   Object Detection
                 </h3>
                 <p className="text-gray-400 leading-relaxed">
-                  YOLOv8 identifies objects with bounding boxes and confidence scores
+                  Groq Vision API identifies objects with bounding boxes and confidence scores
                 </p>
               </article>
 
@@ -90,7 +90,7 @@ const LandingPage = () => {
                   Scene Descriptions
                 </h3>
                 <p className="text-gray-400 leading-relaxed">
-                  Natural language captions powered by BLIP-2 vision-language models
+                  Natural language captions powered by Llama 4 Scout vision-language model
                 </p>
               </article>
 
