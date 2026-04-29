@@ -64,6 +64,7 @@ SceneIQ is a full-stack web application designed for visual accessibility. Users
 | Terms of Service page | Live |
 | Accessibility Statement page | Live |
 | Forgot password & reset password | Live |
+| Camera flip (front/back) on mobile | Live |
 
 ---
 
@@ -257,6 +258,12 @@ Managed by Alembic (current head: `20260216_01`).
 - `caption`
 - `objects_detected` (JSON)
 - `created_at`
+
+---
+
+## Mobile Camera
+
+On mobile devices (iOS / Android), the Upload page includes a **Flip Camera** button that switches between the front-facing and rear-facing camera while the webcam stream is active. This requires HTTPS — it works on the Render deployment but not on `http://localhost`.
 
 ---
 
