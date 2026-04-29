@@ -130,7 +130,7 @@ const LandingPage = () => (
                 </svg>
               }
               title="Object Detection"
-              description="YOLOv8 identifies and locates every object in the scene with bounding boxes and confidence scores."
+              description="Groq Vision API identifies and locates every object in the scene with bounding boxes and confidence scores."
               accent={{ bg: 'bg-cyan-400/10', text: 'text-cyan-400' }}
             />
             <FeatureCard
@@ -140,7 +140,7 @@ const LandingPage = () => (
                 </svg>
               }
               title="Scene Descriptions"
-              description="Natural language captions powered by BLIP-2 vision-language models describe exactly what's happening."
+              description="Natural language captions powered by Llama 4 Scout vision-language model describe exactly what's happening."
               accent={{ bg: 'bg-purple-500/10', text: 'text-purple-400' }}
             />
             <FeatureCard

@@ -74,6 +74,10 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 
+# Python backend dirs (tracked on back_end branch, not front_end)
+app/
+alembic/
+
 # Virtual environments
 .venv/
 venv/
