@@ -1,5 +1,70 @@
-// Mock API service - simulates backend calls with delays
-// In Sprint 2, replace these with real fetch() calls to FastAPI backend
+// ─── Real API (FastAPI backend) ───────────────────────────────────────────────
+
+const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+
+const apiFetch = async (path, options = {}) => {
+  const token = localStorage.getItem('token');
+  const headers = { 'Content-Type': 'application/json', ...options.headers };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(`${BASE_URL}${path}`, { ...options, headers });
+  if (!res.ok) {
+    if (res.status === 401) {
+      // Token expired or revoked — clear auth state and force re-login
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.dispatchEvent(new Event('auth:expired'));
+    }
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Request failed');
+  }
+  return res.json();
+};
+
+export const apiLogin = (email, password) =>
+  apiFetch('/api/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
+
+export const apiRegister = (name, email, password) =>
+  apiFetch('/api/auth/register', { method: 'POST', body: JSON.stringify({ name, email, password }) });
+
+export const apiLogout = () =>
+  apiFetch('/api/auth/logout', { method: 'POST' });
+
+export const apiGetProfile = () =>
+  apiFetch('/api/users/profile');
+
+export const apiUpdateProfile = (data) =>
+  apiFetch('/api/users/profile', { method: 'PUT', body: JSON.stringify(data) });
+
+export const apiAnalyzeImage = async (imageFile) => {
+  const token = localStorage.getItem('token');
+  const formData = new FormData();
+  formData.append('file', imageFile);
+  const res = await fetch(`${BASE_URL}/api/images/analyze`, {
+    method: 'POST',
+    headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+    body: formData,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Analysis failed');
+  }
+  return res.json(); // { caption, objects: [{label, confidence, bbox: [x1,y1,x2,y2]}], image_id }
+};
+
+export const apiAskQuestion = (imageId, question) =>
+  apiFetch('/api/images/ask', { method: 'POST', body: JSON.stringify({ image_id: imageId, question }) });
+
+export const apiGetHistory = () =>
+  apiFetch('/api/images/history');
+
+export const apiForgotPassword = (email) =>
+  apiFetch('/api/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) });
+
+export const apiResetPassword = (token, new_password) =>
+  apiFetch('/api/auth/reset-password', { method: 'POST', body: JSON.stringify({ token, new_password }) });
+
+// ─── Mock API (legacy – kept for reference, not used by the UI) ───────────────
 
 export const mockLogin = (email, password) => {
   return new Promise((resolve, reject) => {

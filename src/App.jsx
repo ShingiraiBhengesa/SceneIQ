@@ -10,6 +10,11 @@ import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import UploadPage from './pages/UploadPage';
 import ProfilePage from './pages/ProfilePage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
+import TermsOfServicePage from './pages/TermsOfServicePage';
+import AccessibilityStatementPage from './pages/AccessibilityStatementPage';
 
 function App() {
   return (
@@ -22,6 +27,8 @@ function App() {
               <Route path="/" element={<LandingPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route 
                 path="/dashboard" 
                 element={
@@ -38,14 +45,17 @@ function App() {
                   </ProtectedRoute>
                 } 
               />
-              <Route 
-                path="/profile" 
+              <Route
+                path="/profile"
                 element={
                   <ProtectedRoute>
                     <ProfilePage />
                   </ProtectedRoute>
-                } 
+                }
               />
+              <Route path="/privacy" element={<PrivacyPolicyPage />} />
+              <Route path="/terms" element={<TermsOfServicePage />} />
+              <Route path="/accessibility" element={<AccessibilityStatementPage />} />
             </Routes>
           </div>
           <Footer />

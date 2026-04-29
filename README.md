@@ -1,190 +1,274 @@
-# SceneIQ Frontend - Sprint 1
+# SceneIQ
 
-AI-powered visual assistance platform helping visually impaired users understand their surroundings through image analysis, scene descriptions, and audio output.
+An AI-powered visual accessibility assistant that helps users understand their surroundings through image analysis, scene descriptions, and audio output.
 
-## Project Overview
+## Live Demo
 
-This is a **Sprint 1 prototype** built with **mock data only** - no backend integration yet. All API calls are simulated with delays to mimic real network requests.
+- **Frontend:** https://sceneiq-frontend.onrender.com
+- **Backend API:** https://sceneiq-backend.onrender.com
+- **API Docs:** https://sceneiq-backend.onrender.com/docs
+
+---
+
+## Overview
+
+SceneIQ is a full-stack web application designed for visual accessibility. Users upload an image and the system returns:
+
+- A natural-language scene description (image captioning)
+- A list of detected objects with confidence scores
+- Answers to follow-up questions about the image
+- Audio playback of all results via Web Speech API
+
+---
 
 ## Tech Stack
 
-- **React.js** 18.2.0 (functional components with hooks)
-- **React Router** 6.22.0 (client-side routing)
-- **Tailwind CSS** 3.4.1 (utility-first styling)
-- **Web Speech API** (text-to-speech functionality)
+### Frontend
+- **React 18** — functional components with hooks
+- **React Router 6** — client-side routing with protected routes
+- **Tailwind CSS 3** — dark theme design system
+- **Web Speech API** — text-to-speech for all analysis results
 
-## Features Implemented
+### Backend
+- **FastAPI** — REST API with automatic OpenAPI docs
+- **SQLAlchemy 2 + Alembic** — ORM and database migrations
+- **PostgreSQL** — primary database (Supabase)
+- **Upstash Redis** (TLS) — JWT token blacklist on logout
+- **python-jose** — JWT signing/verification
+- **bcrypt** — password hashing (direct, no passlib)
 
-### Pages
-1. **Landing Page** (`/`) - Hero section with feature cards
-2. **Register Page** (`/register`) - User registration with validation
-3. **Login Page** (`/login`) - User authentication
-4. **Dashboard Page** (`/dashboard`) - Statistics and analysis history
-5. **Upload & Analysis Page** (`/upload`) - Image upload, analysis, and Q&A
-6. **Profile Page** (`/profile`) - User settings and accessibility preferences
+### AI / ML
+- **Groq API** (`meta-llama/llama-4-scout-17b-16e-instruct`) — vision model powering captioning, object detection, and visual Q&A
+- All inference is remote — no local model weights, minimal memory footprint
 
-### Accessibility Features (WCAG 2.1 AA Compliant)
-- ✅ All interactive elements are keyboard navigable
-- ✅ Visible focus indicators on all focusable elements
-- ✅ Proper ARIA labels and roles throughout
-- ✅ Skip-to-content link for screen readers
-- ✅ Color contrast meets 4.5:1 minimum ratio
-- ✅ Form labels associated with inputs
-- ✅ Status messages with `role="alert"` or `role="status"`
-- ✅ Speech rate and voice customization
-- ✅ High contrast mode toggle
-- ✅ Font size adjustment
+### Infrastructure
+- **Database:** Supabase (PostgreSQL via connection pooler, port 6543)
+- **Cache / Token Blacklist:** Upstash Redis (TLS)
+- **Deployment:** Render Blueprint (Docker backend + static frontend)
 
-### Key Components
-- **Navbar** - Responsive navigation with auth state
-- **Footer** - Information and quick links
-- **ProtectedRoute** - Route guard for authenticated pages
-- **AuthContext** - State management (in-memory, no localStorage)
+---
 
-## Installation & Setup
+## Features
 
-1. **Install dependencies:**
-   ```bash
-   npm install
-   ```
+| Feature | Status |
+|---|---|
+| User registration & login | Live |
+| JWT auth with Redis token blacklist | Live |
+| Profile view & update | Live |
+| Image upload & analysis (caption + objects) | Live |
+| Visual question answering | Live |
+| Analysis history (last 50) | Live |
+| Text-to-speech playback | Live |
+| WCAG 2.1 AA keyboard navigation | Live |
+| Privacy Policy page | Live |
+| Terms of Service page | Live |
+| Accessibility Statement page | Live |
+| Forgot password & reset password | Live |
 
-2. **Start development server:**
-   ```bash
-   npm start
-   ```
-
-3. **Access the app:**
-   Open [http://localhost:3000](http://localhost:3000) in your browser
+---
 
 ## Project Structure
 
 ```
-
-├── public/
-│   └── index.html
-├── src/
+SceneIQ/
+├── app/                        # FastAPI backend
+│   ├── main.py                 # App entry, CORS, router registration
+│   ├── config.py               # Settings (env vars)
+│   ├── database.py             # SQLAlchemy engine & session
+│   ├── middleware/
+│   │   └── auth_middleware.py  # JWT extraction & user ID resolution
+│   ├── models/
+│   │   ├── user.py
+│   │   └── analysis_history.py
+│   ├── routers/
+│   │   ├── auth.py             # /api/auth — register, login, logout
+│   │   ├── users.py            # /api/users — profile get/update
+│   │   └── images.py           # /api/images — analyze, ask, history
+│   ├── schemas/
+│   │   ├── user.py
+│   │   └── image.py
+│   └── services/
+│       ├── auth_service.py     # JWT creation & password hashing
+│       ├── ml_service.py       # Groq vision API wrapper
+│       ├── token_blacklist.py  # Redis token blacklist
+│       └── password_reset.py   # Password reset token store
+├── alembic/                    # DB migrations
+├── src/                        # React frontend
 │   ├── components/
+│   │   ├── Logo.jsx
 │   │   ├── Navbar.jsx
 │   │   ├── Footer.jsx
 │   │   └── ProtectedRoute.jsx
+│   ├── context/
+│   │   └── AuthContext.jsx     # Auth state (localStorage persistence)
 │   ├── pages/
 │   │   ├── LandingPage.jsx
 │   │   ├── LoginPage.jsx
 │   │   ├── RegisterPage.jsx
 │   │   ├── DashboardPage.jsx
 │   │   ├── UploadPage.jsx
-│   │   └── ProfilePage.jsx
-│   ├── services/
-│   │   └── api.js          # Mock API calls
-│   ├── context/
-│   │   └── AuthContext.jsx # Auth state management
-│   ├── App.jsx
-│   ├── index.js
-│   └── index.css
-├── tailwind.config.js
-├── package.json
-└── README.md
+│   │   ├── ProfilePage.jsx
+│   │   ├── PrivacyPolicyPage.jsx
+│   │   ├── TermsOfServicePage.jsx
+│   │   ├── AccessibilityStatementPage.jsx
+│   │   ├── ForgotPasswordPage.jsx
+│   │   └── ResetPasswordPage.jsx
+│   └── services/
+│       └── api.js              # All fetch calls to the backend
+├── Dockerfile
+├── render.yaml                 # Render Blueprint config
+├── requirements.txt
+└── package.json
 ```
 
-## Mock API Services
+---
 
-All backend calls are simulated in `src/services/api.js`:
+## API Endpoints
 
-- `mockLogin(email, password)` - Simulates login (1.2s delay)
-- `mockRegister(name, email, password)` - Simulates registration (1.2s delay)
-- `mockGetProfile()` - Returns mock user profile (0.5s delay)
-- `mockGetHistory()` - Returns mock analysis history (0.8s delay)
-- `mockAnalyzeImage(imageFile)` - Returns mock analysis results (2.5s delay)
-- `mockAskQuestion(question)` - Returns mock answer (1s delay)
-- `mockUpdatePreferences(preferences)` - Simulates saving preferences (0.6s delay)
+### Authentication — `/api/auth`
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| POST | `/register` | — | Create account |
+| POST | `/login` | — | Returns JWT access token |
+| POST | `/logout` | Bearer | Blacklists token in Redis |
+| POST | `/forgot-password` | — | Generates a password reset token |
+| POST | `/reset-password` | — | Validates token and updates password |
 
-## Testing the App
+### Users — `/api/users`
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| GET | `/profile` | Bearer | Get current user profile |
+| PUT | `/profile` | Bearer | Update name / preferences |
 
-### Registration & Login
-1. Navigate to `/register`
-2. Fill in the form with any valid data (password must be 8+ characters)
-3. Submit to be auto-logged in and redirected to dashboard
+### Image Analysis — `/api/images`
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| POST | `/analyze` | Bearer | Upload image → caption + detected objects |
+| POST | `/ask` | Bearer | Answer question about a stored analysis |
+| POST | `/analyze-and-ask` | Bearer | Analyze + answer in one request |
+| GET | `/history` | Bearer | Last 50 analyses for current user |
+| GET | `/metrics` | — | Model performance benchmarks |
 
-### Image Analysis
-1. Go to `/upload`
-2. Upload an image (JPEG, PNG, or WebP) or use webcam
-3. Click "Analyze Image"
-4. View scene description and detected objects
-5. Ask questions about the image
-6. Use the 🔊 buttons to hear audio descriptions
+### Health
+| Method | Path | Description |
+|---|---|---|
+| GET | `/api/health` | DB connectivity check |
 
-### Accessibility Testing
-1. Navigate using only Tab and Shift+Tab
-2. Activate elements with Enter or Space
-3. Check focus indicators are visible
-4. Test speech synthesis on Dashboard and Upload pages
-5. Adjust preferences in Profile page
+---
 
-## Important Notes
+## Local Setup
 
-### State Management
-- All auth state is stored **in React context only** (not localStorage)
-- User session is lost on page refresh (intentional for Sprint 1)
-- Sprint 2 will integrate real backend with token persistence
+### Prerequisites
+- Node.js 18+
+- Python 3.11+
+- PostgreSQL (or a Supabase project)
+- Upstash Redis instance
+- Groq API key — free at [console.groq.com](https://console.groq.com)
 
-### Mock Data
-- Login accepts any email/password combination
-- Analysis results are hardcoded
-- History shows 3 sample analyses
-- Statistics are fixed numbers
-
-### Browser Compatibility
-- Requires modern browser with Web Speech API support
-- Webcam feature requires HTTPS in production (works on localhost)
-- Best tested in Chrome, Firefox, Safari, and Edge
-
-## Keyboard Navigation Guide
-
-- **Tab** - Move forward through interactive elements
-- **Shift + Tab** - Move backward
-- **Enter/Space** - Activate buttons and links
-- **Arrow Keys** - Navigate radio groups and sliders
-- **Esc** - Close modals
-
-## Accessibility Features Testing
-
-### Screen Reader Testing
-- All images have descriptive alt text
-- Form inputs have proper labels
-- Status messages announce properly
-- Focus management on route changes
-
-### Color Contrast
-- Primary blue: #2563eb (accessible on white)
-- Text colors meet WCAG AA standards
-- High contrast mode available in Profile
-
-### Speech Synthesis
-- Adjustable speech rate (0.5x - 2.0x)
-- Voice selection from available system voices
-- Play/Stop controls with proper ARIA states
-
-## Next Steps (Sprint 2)
-
-- [ ] Connect to FastAPI backend
-- [ ] Replace mock API calls with real fetch() requests
-- [ ] Implement JWT token management
-- [ ] Add real image upload and AI analysis
-- [ ] Integrate actual object detection model
-- [ ] Add session persistence (optional)
-
-## Build for Production
+### Backend
 
 ```bash
-npm run build
+# Create and activate virtual environment
+python -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Configure environment
+cp .env.example .env
+# Edit .env — set DATABASE_URL, JWT_SECRET, REDIS_URL, GROQ_API_KEY
+
+# Run migrations
+alembic upgrade head
+
+# Start API server
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-Creates optimized production build in `build/` directory.
+API available at `http://localhost:8000`  
+Swagger docs at `http://localhost:8000/docs`
+
+### Frontend
+
+```bash
+npm install
+npm start
+```
+
+Frontend available at `http://localhost:3000`
+
+---
+
+## Environment Variables
+
+### Backend
+
+| Variable | Description |
+|---|---|
+| `DATABASE_URL` | PostgreSQL connection string |
+| `JWT_SECRET` | Secret key for signing JWTs |
+| `JWT_ALGORITHM` | JWT signing algorithm (default: `HS256`) |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | Token lifetime in minutes (default: `60`) |
+| `REDIS_URL` | Upstash Redis URL (`rediss://...`) |
+| `GROQ_API_KEY` | Groq API key for vision inference |
+| `CORS_ORIGINS` | Comma-separated allowed frontend origins |
+
+### Frontend
+
+| Variable | Description |
+|---|---|
+| `REACT_APP_API_URL` | Backend base URL (set at build time) |
+
+---
+
+## Deployment (Render)
+
+This project uses a Render Blueprint (`render.yaml`) to deploy both services.
+
+1. Fork this repo
+2. Connect it to Render → **New Blueprint**
+3. Set the following environment variables for `sceneiq-backend` in the Render dashboard:
+   - `DATABASE_URL`
+   - `JWT_SECRET`
+   - `REDIS_URL`
+   - `GROQ_API_KEY`
+4. Render builds and deploys both services automatically on every push to `main`
+
+> **Supabase note:** Free-tier projects pause after ~1 week of inactivity. Resume the project from the Supabase dashboard before redeploying if you see a database connection error.
+
+---
+
+## Database Schema
+
+Managed by Alembic (current head: `20260216_01`).
+
+**`users`**
+- `id` (UUID, PK)
+- `email` (unique, indexed)
+- `name`
+- `password_hash`
+- `created_at`
+
+**`analysis_history`**
+- `id` (UUID, PK)
+- `user_id` (FK → users, indexed)
+- `image_filename`
+- `caption`
+- `objects_detected` (JSON)
+- `created_at`
+
+---
+
+## Accessibility
+
+- WCAG 2.1 AA compliant
+- Full keyboard navigation
+- ARIA labels and live regions on dynamic content
+- Text-to-speech playback with adjustable rate and voice selection
+
+---
 
 ## License
 
-MIT License - See LICENSE file for details
-
-## Support
-
-For questions or issues, contact: support@sceneiq.com
+MIT

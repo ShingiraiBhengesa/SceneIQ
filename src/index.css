@@ -2,23 +2,59 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom focus styles for accessibility */
 @layer base {
   *:focus-visible {
-    @apply outline-2 outline-offset-2 outline-blue-600;
+    @apply outline-2 outline-offset-2 outline-cyan-400;
   }
-  
+
   body {
-    @apply antialiased;
+    @apply antialiased bg-dark-900 text-white;
   }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: #0f1729; }
+  ::-webkit-scrollbar-thumb { background: #252d3d; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #22d3ee; }
 }
 
-/* High contrast mode support */
-.high-contrast {
-  filter: contrast(1.5);
+@layer utilities {
+  /* Gradient text */
+  .gradient-text {
+    background: linear-gradient(135deg, #22d3ee, #a855f7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Gradient border card */
+  .gradient-border {
+    position: relative;
+    background: #1a2332;
+    border-radius: 1rem;
+  }
+  .gradient-border::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 1rem;
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(34,211,238,0.3), rgba(168,85,247,0.3));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* Glow effects */
+  .glow-cyan { box-shadow: 0 0 24px rgba(34, 211, 238, 0.25); }
+  .glow-purple { box-shadow: 0 0 24px rgba(168, 85, 247, 0.25); }
 }
 
-/* Screen reader only content */
+/* High contrast mode */
+.high-contrast { filter: contrast(1.5); }
+
+/* Screen reader only */
 .sr-only {
   position: absolute;
   width: 1px;
@@ -36,13 +72,12 @@
   position: absolute;
   top: -40px;
   left: 0;
-  background: #000;
-  color: #fff;
-  padding: 8px;
+  background: #22d3ee;
+  color: #0f1729;
+  padding: 8px 16px;
   text-decoration: none;
+  font-weight: 600;
   z-index: 100;
+  border-radius: 0 0 8px 0;
 }
-
-.skip-link:focus {
-  top: 0;
-}
+.skip-link:focus { top: 0; }
