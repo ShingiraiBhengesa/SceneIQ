@@ -63,6 +63,7 @@ SceneIQ is a full-stack web application designed for visual accessibility. Users
 | Privacy Policy page | Live |
 | Terms of Service page | Live |
 | Accessibility Statement page | Live |
+| Forgot password & reset password | Live |
 
 ---
 
@@ -89,7 +90,8 @@ SceneIQ/
 │   └── services/
 │       ├── auth_service.py     # JWT creation & password hashing
 │       ├── ml_service.py       # Groq vision API wrapper
-│       └── token_blacklist.py  # Redis token blacklist
+│       ├── token_blacklist.py  # Redis token blacklist
+│       └── password_reset.py   # Password reset token store
 ├── alembic/                    # DB migrations
 ├── src/                        # React frontend
 │   ├── components/
@@ -108,7 +110,9 @@ SceneIQ/
 │   │   ├── ProfilePage.jsx
 │   │   ├── PrivacyPolicyPage.jsx
 │   │   ├── TermsOfServicePage.jsx
-│   │   └── AccessibilityStatementPage.jsx
+│   │   ├── AccessibilityStatementPage.jsx
+│   │   ├── ForgotPasswordPage.jsx
+│   │   └── ResetPasswordPage.jsx
 │   └── services/
 │       └── api.js              # All fetch calls to the backend
 ├── Dockerfile
@@ -127,6 +131,8 @@ SceneIQ/
 | POST | `/register` | — | Create account |
 | POST | `/login` | — | Returns JWT access token |
 | POST | `/logout` | Bearer | Blacklists token in Redis |
+| POST | `/forgot-password` | — | Generates a password reset token |
+| POST | `/reset-password` | — | Validates token and updates password |
 
 ### Users — `/api/users`
 | Method | Path | Auth | Description |
