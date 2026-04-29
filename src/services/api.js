@@ -58,6 +58,12 @@ export const apiAskQuestion = (imageId, question) =>
 export const apiGetHistory = () =>
   apiFetch('/api/images/history');
 
+export const apiForgotPassword = (email) =>
+  apiFetch('/api/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) });
+
+export const apiResetPassword = (token, new_password) =>
+  apiFetch('/api/auth/reset-password', { method: 'POST', body: JSON.stringify({ token, new_password }) });
+
 // ─── Mock API (legacy – kept for reference, not used by the UI) ───────────────
 
 export const mockLogin = (email, password) => {

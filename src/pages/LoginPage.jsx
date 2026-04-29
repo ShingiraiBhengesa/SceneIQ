@@ -90,6 +90,12 @@ const LoginPage = () => {
               value={formData.password} onChange={handleChange} error={errors.password}
             />
 
+            <div className="flex justify-end">
+              <Link to="/forgot-password" className="text-sm text-cyan-400 hover:text-cyan-300 transition-colors">
+                Forgot password?
+              </Link>
+            </div>
+
             <button
               type="submit"
               disabled={loading}
